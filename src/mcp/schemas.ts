@@ -1,5 +1,5 @@
 import * as z from "zod/v4";
-import { dbTableEnumValues } from "#/sdk/fields";
+import { dbTableEnumValues } from "../sdk/fields.js";
 
 export const limitSchema = z.number().int().min(1).max(500).default(25);
 export const smallLimitSchema = z.number().int().min(1).max(100).default(10);

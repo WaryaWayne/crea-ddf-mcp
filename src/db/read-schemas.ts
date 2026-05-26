@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { dbTableNames } from "#/sdk/fields";
-import type { JsonValue } from "#/db/json";
+import { dbTableNames } from "../sdk/fields.js";
+import type { JsonValue } from "./json.js";
 
 const fieldNameSchema = Schema.NonEmptyString;
 const fieldListSchema = Schema.Array(fieldNameSchema).check(

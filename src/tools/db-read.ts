@@ -1,15 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
-import { queryTable, getRow } from "#/db/read-query";
+import { queryTable, getRow } from "../db/read-query.js";
 import {
   GetRowInputSchema,
   TableQueryInputSchema,
-} from "#/db/read-schemas";
-import { decodeUnknownOrThrow } from "#/mcp/effect-decode";
-import { runTool } from "#/mcp/results";
-import { dbQueryInputSchema, tableNameSchema } from "#/mcp/schemas";
-import { tableInfo } from "#/sdk/fields";
-import { runDdfDatabase } from "#/sdk/runtime";
+} from "../db/read-schemas.js";
+import { decodeUnknownOrThrow } from "../mcp/effect-decode.js";
+import { runTool } from "../mcp/results.js";
+import { dbQueryInputSchema, tableNameSchema } from "../mcp/schemas.js";
+import { tableInfo } from "../sdk/fields.js";
+import { runDdfDatabase } from "../sdk/runtime.js";
+
+type DbQueryInput = z.infer<typeof dbQueryInputSchema>;
+type TableNameInput = { readonly table: z.infer<typeof tableNameSchema> };
 
 export const registerDbReadTools = (server: McpServer) => {
   server.registerTool(
@@ -20,7 +23,7 @@ export const registerDbReadTools = (server: McpServer) => {
         "Read rows from a known synced Postgres table. Accepts structured select, where, filters, orderBy, limit, and offset; returns paginated JSON.",
       inputSchema: dbQueryInputSchema,
     },
-    async (input) =>
+    async (input: DbQueryInput) =>
       runTool(async () => {
         const decoded = decodeUnknownOrThrow(
           TableQueryInputSchema,
@@ -43,7 +46,7 @@ export const registerDbReadTools = (server: McpServer) => {
         key: z.union([z.string().trim().min(1), z.number()]),
       }),
     },
-    async (input) =>
+    async (input: z.infer<typeof GetRowInputSchema>) =>
       runTool(async () => {
         const decoded = decodeUnknownOrThrow(
           GetRowInputSchema,
@@ -65,7 +68,7 @@ export const registerDbReadTools = (server: McpServer) => {
         table: tableNameSchema,
       }),
     },
-    async (input) =>
+    async (input: TableNameInput) =>
       runTool(async () => ({
         table: tableInfo(input.table),
       })),

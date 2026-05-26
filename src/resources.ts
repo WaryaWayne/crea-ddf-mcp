@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import { allTableInfo, sdkCapabilities } from "#/sdk/fields";
-import { toJson } from "#/mcp/results";
+import { allTableInfo, sdkCapabilities } from "./sdk/fields.js";
+import { toJson } from "./mcp/results.js";
 
 const jsonResource = (uri: URL, value: unknown) => ({
   contents: [

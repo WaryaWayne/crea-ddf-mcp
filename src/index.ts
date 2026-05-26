@@ -2,10 +2,10 @@
 
 import { StdioServerTransport } from "@modelcontextprotocol/server";
 import { pathToFileURL } from "node:url";
-import { createServer } from "#/server";
-import { errorMessage } from "#/mcp/results";
+import { createServer } from "./server.js";
+import { errorMessage } from "./mcp/results.js";
 
-export { createServer } from "#/server";
+export { createServer } from "./server.js";
 
 export const main = async () => {
   const server = createServer();

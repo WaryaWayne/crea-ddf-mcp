@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
-import { registerResources } from "#/resources";
-import { registerDbInspectionTools } from "#/tools/db-inspect";
-import { registerDbReadTools } from "#/tools/db-read";
+import { registerResources } from "./resources.js";
+import { registerDbInspectionTools } from "./tools/db-inspect.js";
+import { registerDbReadTools } from "./tools/db-read.js";
 
 export const packageVersion = "0.0.1";
 

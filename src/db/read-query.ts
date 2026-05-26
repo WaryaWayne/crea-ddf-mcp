@@ -19,7 +19,7 @@ import type { SQL } from "drizzle-orm";
 import type { SelectedFields } from "drizzle-orm/pg-core";
 import { DdfDatabase } from "crea-ddf/db";
 import { Effect } from "effect";
-import { toJsonObject } from "#/db/json";
+import { toJsonObject } from "./json.js";
 import {
   TableQueryResultSchema,
   type FilterInput,
@@ -27,15 +27,15 @@ import {
   type OrderByInput,
   type TableQueryInput,
   type TableQueryResult,
-} from "#/db/read-schemas";
-import { decodeUnknownOrThrow } from "#/mcp/effect-decode";
+} from "./read-schemas.js";
+import { decodeUnknownOrThrow } from "../mcp/effect-decode.js";
 import {
   columnsForTable,
   tableDefinition,
   tableInfo,
   type DbColumnMap,
   type DbTableName,
-} from "#/sdk/fields";
+} from "../sdk/fields.js";
 
 type ScalarValue = string | number | boolean | null;
 
@@ -193,6 +193,9 @@ const conditionForFilter = (
 
       return sql`${column} @> ${JSON.stringify(filter.value)}::jsonb`;
     }
+
+    default:
+      throw new Error(`Unsupported filter op "${filter.op}"`);
   }
 };
 
@@ -215,7 +218,11 @@ const whereExpression = (
 ): SQL | undefined => {
   const conditions: Array<SQL> = [];
 
-  for (const [field, value] of Object.entries(input.where ?? {})) {
+  const whereInput = input.where ?? {};
+
+  for (const [field, value] of Object.entries(
+    whereInput as Record<string, ScalarValue | ReadonlyArray<ScalarValue>>,
+  )) {
     conditions.push(conditionForWhereEntry(input.table, columns, field, value));
   }
 

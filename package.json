@@ -14,12 +14,6 @@
     "url": "https://github.com/WaryaWayne/crea-ddf-mcp/issues"
   },
   "homepage": "https://github.com/WaryaWayne/crea-ddf-mcp",
-  "imports": {
-    "#/*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
-    }
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {

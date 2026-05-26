@@ -4,16 +4,16 @@ import { ddfSyncRuns } from "crea-ddf/db";
 import { DdfDatabase } from "crea-ddf/db";
 import { Effect } from "effect";
 import * as z from "zod/v4";
-import { queryTable } from "#/db/read-query";
-import { runTool } from "#/mcp/results";
-import { smallLimitSchema, tableNameSchema } from "#/mcp/schemas";
+import { queryTable } from "../db/read-query.js";
+import { runTool } from "../mcp/results.js";
+import { smallLimitSchema, tableNameSchema } from "../mcp/schemas.js";
 import {
   allTableInfo,
   dbTableNames,
   tableDefinition,
   tableInfo,
-} from "#/sdk/fields";
-import { runDdfDatabase } from "#/sdk/runtime";
+} from "../sdk/fields.js";
+import { runDdfDatabase } from "../sdk/runtime.js";
 
 const envStatus = () => ({
   databaseUrlConfigured: process.env.DATABASE_URL !== undefined,
