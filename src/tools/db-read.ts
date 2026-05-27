@@ -1,38 +1,50 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import * as z from "zod/v4";
-import { queryTable, getRow } from "../db/read-query.js";
+import { Effect } from "effect";
+import { getRow, queryTable } from "../db/read-query.js";
+import type { GetRowInput, TableQueryInput } from "../db/read-schemas.js";
+import { runDbMcpTool, runLocalMcpTool } from "../mcp/runtime.js";
 import {
-  GetRowInputSchema,
-  TableQueryInputSchema,
-} from "../db/read-schemas.js";
-import { decodeUnknownOrThrow } from "../mcp/effect-decode.js";
-import { runTool } from "../mcp/results.js";
-import { dbQueryInputSchema, tableNameSchema } from "../mcp/schemas.js";
+  GetRowMcpInputSchema,
+  TableNameMcpInputSchema,
+  TableQueryMcpInputSchema,
+  type TableNameInput,
+} from "../mcp/schemas.js";
 import { tableInfo } from "../sdk/fields.js";
-import { runDdfDatabase } from "../sdk/runtime.js";
 
-type DbQueryInput = z.infer<typeof dbQueryInputSchema>;
-type TableNameInput = { readonly table: z.infer<typeof tableNameSchema> };
+export const ddfDbQueryTableTool = Effect.fn(
+  "McpTool.ddf_db_query_table",
+)(function* (
+  input: TableQueryInput,
+) {
+  return yield* queryTable(input);
+});
 
-export const registerDbReadTools = (server: McpServer) => {
+export const ddfDbGetRowTool = Effect.fn("McpTool.ddf_db_get_row")(function* (
+  input: GetRowInput,
+) {
+  return yield* getRow(input);
+});
+
+export const ddfDbTableFieldsTool = Effect.fn(
+  "McpTool.ddf_db_table_fields",
+)(function* (
+  input: TableNameInput,
+) {
+  return { table: yield* tableInfo(input.table) };
+});
+
+export const registerDbReadTools = Effect.fn(
+  "Mcp.registerDbReadTools",
+)(function* (server: McpServer) {
   server.registerTool(
     "ddf_db_query_table",
     {
       title: "Query a synced CREA DDF table",
       description:
         "Read rows from a known synced Postgres table. Accepts structured select, where, filters, orderBy, limit, and offset; returns paginated JSON.",
-      inputSchema: dbQueryInputSchema,
+      inputSchema: TableQueryMcpInputSchema,
     },
-    async (input: DbQueryInput) =>
-      runTool(async () => {
-        const decoded = decodeUnknownOrThrow(
-          TableQueryInputSchema,
-          input,
-          "Tool input",
-        );
-
-        return await runDdfDatabase(queryTable(decoded));
-      }),
+    (input) => ddfDbQueryTableTool(input).pipe(runDbMcpTool),
   );
 
   server.registerTool(
@@ -41,21 +53,9 @@ export const registerDbReadTools = (server: McpServer) => {
       title: "Get one synced database row by key",
       description:
         "Read a single row by the table's schema-defined key field, such as listingKey, memberKey, officeKey, openHouseKey, or destinationId.",
-      inputSchema: z.object({
-        table: tableNameSchema,
-        key: z.union([z.string().trim().min(1), z.number()]),
-      }),
+      inputSchema: GetRowMcpInputSchema,
     },
-    async (input: z.infer<typeof GetRowInputSchema>) =>
-      runTool(async () => {
-        const decoded = decodeUnknownOrThrow(
-          GetRowInputSchema,
-          input,
-          "Tool input",
-        );
-
-        return await runDdfDatabase(getRow(decoded));
-      }),
+    (input) => ddfDbGetRowTool(input).pipe(runDbMcpTool),
   );
 
   server.registerTool(
@@ -64,13 +64,8 @@ export const registerDbReadTools = (server: McpServer) => {
       title: "List fields for a synced table",
       description:
         "Return queryable Drizzle field names for a table so the model can build select, where, filters, and orderBy objects.",
-      inputSchema: z.object({
-        table: tableNameSchema,
-      }),
+      inputSchema: TableNameMcpInputSchema,
     },
-    async (input: TableNameInput) =>
-      runTool(async () => ({
-        table: tableInfo(input.table),
-      })),
+    (input) => ddfDbTableFieldsTool(input).pipe(runLocalMcpTool),
   );
-};
+});
