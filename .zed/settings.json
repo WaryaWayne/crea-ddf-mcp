@@ -1,0 +1,34 @@
+{
+  "languages": {
+    "TSX": {
+      "language_servers": [
+        "vtsls",
+        "typescript-language-server",
+        "...",
+      ]
+    },
+    "TypeScript": {
+      "language_servers": [
+        "vtsls",
+        "typescript-language-server",
+        "...",
+      ]
+    }
+  },
+  "lsp": {
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "tsserver": {
+            "pluginPaths": [
+              "./node_modules"
+            ]
+          }
+        },
+        "vtsls": {
+          "autoUseWorkspaceTsdk": true
+        }
+      }
+    }
+  }
+}
