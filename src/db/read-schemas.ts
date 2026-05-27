@@ -1,6 +1,8 @@
 import { Schema } from "effect";
 import { dbTableNames } from "../sdk/fields.js";
-import type { JsonValue } from "./json.js";
+
+export type JsonValue = Schema.Json;
+export type JsonObject = Schema.JsonObject;
 
 const fieldNameSchema = Schema.NonEmptyString;
 const fieldListSchema = Schema.Array(fieldNameSchema).check(
@@ -9,16 +11,37 @@ const fieldListSchema = Schema.Array(fieldNameSchema).check(
 
 export const DbTableNameSchema = Schema.Literals(dbTableNames);
 
-export const JsonValueSchema: Schema.Schema<JsonValue> = Schema.suspend(() =>
-  Schema.Union([
-    Schema.String,
-    Schema.Number,
-    Schema.Boolean,
-    Schema.Null,
-    Schema.Array(JsonValueSchema),
-    Schema.Record(Schema.String, JsonValueSchema),
-  ]),
-) as Schema.Schema<JsonValue>;
+export const JsonValueSchema = Schema.Json;
+export const JsonObjectSchema = Schema.Record(Schema.String, Schema.Json);
+
+type DbJsonValueSource =
+  | Schema.Json
+  | undefined
+  | globalThis.Date
+  | bigint
+  | Schema.Schema.Type<typeof Schema.DateTimeUtc>
+  | ReadonlyArray<DbJsonValueSource>
+  | { readonly [key: string]: DbJsonValueSource };
+
+const DbJsonValueSourceSchema: Schema.Codec<DbJsonValueSource> =
+  Schema.suspend((): Schema.Codec<DbJsonValueSource> =>
+    Schema.Union([
+      Schema.String,
+      Schema.Number,
+      Schema.Boolean,
+      Schema.Null,
+      Schema.Undefined,
+      Schema.DateValid,
+      Schema.DateTimeUtc,
+      Schema.BigInt,
+      Schema.Array(DbJsonValueSourceSchema),
+      Schema.Record(Schema.String, DbJsonValueSourceSchema),
+    ]),
+  );
+
+export const DbJsonObjectSchema = Schema.toCodecJson(
+  Schema.Record(Schema.String, DbJsonValueSourceSchema),
+);
 
 export const ScalarValueSchema = Schema.Union([
   Schema.String,
@@ -111,7 +134,7 @@ export const TableQueryResultSchema = Schema.Struct({
   tableName: Schema.String,
   fields: Schema.Array(Schema.String),
   page: PageSchema,
-  rows: Schema.Array(Schema.Record(Schema.String, JsonValueSchema)),
+  rows: Schema.Array(JsonObjectSchema),
 });
 
 export type TableQueryResult = Schema.Schema.Type<
