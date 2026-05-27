@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "crea-ddf": {
+      "type": "local",
+      "command": ["node", "./dist/index.js"],
+      "environment": {
+        "DATABASE_URL": "postgresql://user@host:post/db-name"
+      },
+      "enabled": true
+    }
+  }
+}
