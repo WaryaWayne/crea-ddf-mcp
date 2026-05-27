@@ -1,18 +1,42 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import { allTableInfo, sdkCapabilities } from "./sdk/fields.js";
+import { Effect } from "effect";
 import { toJson } from "./mcp/results.js";
+import { allTableInfo, sdkCapabilities } from "./sdk/fields.js";
 
-const jsonResource = (uri: URL, value: unknown) => ({
-  contents: [
-    {
-      uri: uri.href,
-      mimeType: "application/json",
-      text: toJson(value),
-    },
-  ],
+const jsonResource = Effect.fn("Mcp.jsonResource")(function* (
+  uri: URL,
+  value: unknown,
+) {
+  return {
+    contents: [
+      {
+        uri: uri.href,
+        mimeType: "application/json",
+        text: yield* toJson(value),
+      },
+    ],
+  };
 });
 
-export const registerResources = (server: McpServer) => {
+export const capabilitiesResource = Effect.fn(
+  "McpResource.capabilities",
+)(function* (uri: URL) {
+  return yield* jsonResource(uri, yield* sdkCapabilities());
+});
+
+export const dbSchemaResource = Effect.fn("McpResource.dbSchema")(function* (
+  uri: URL,
+) {
+  return yield* jsonResource(uri, { tables: yield* allTableInfo() });
+});
+
+export const registerResources = Effect.fn("Mcp.registerResources")(function* (
+  server: McpServer,
+) {
+  const context = yield* Effect.context<never>();
+  // Resource rendering is synchronous today; use an async boundary if that changes.
+  const runResource = Effect.runSyncWith(context);
+
   server.registerResource(
     "crea-ddf-capabilities",
     "crea-ddf://capabilities",
@@ -22,7 +46,7 @@ export const registerResources = (server: McpServer) => {
         "Read-only database tools, synced tables, schema-derived fields, and required environment variables.",
       mimeType: "application/json",
     },
-    async (uri) => jsonResource(uri, sdkCapabilities()),
+    (uri) => runResource(capabilitiesResource(uri)),
   );
 
   server.registerResource(
@@ -34,6 +58,6 @@ export const registerResources = (server: McpServer) => {
         "Known synced database tables and Drizzle field names from crea-ddf.",
       mimeType: "application/json",
     },
-    async (uri) => jsonResource(uri, { tables: allTableInfo() }),
+    (uri) => runResource(dbSchemaResource(uri)),
   );
-};
+});
