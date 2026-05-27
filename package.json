@@ -1,6 +1,6 @@
 {
   "name": "crea-ddf-mcp",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Read-only MCP server for querying synced CREA DDF Postgres data through the crea-ddf package.",
   "type": "module",
   "publishConfig": {
@@ -61,10 +61,10 @@
     "@effect/platform-bun": "4.0.0-beta.71",
     "@effect/sql-pg": "4.0.0-beta.71",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",
-    "crea-ddf": "^0.0.5",
+    "crea-ddf": "^0.0.6",
     "drizzle-orm": "1.0.0-rc.2",
     "effect": "4.0.0-beta.71",
-    "pg": "8.20.0"
+    "pg": "8.21.0"
   },
   "devDependencies": {
     "@effect/language-service": "^0.86.2",
