@@ -52,7 +52,7 @@ export const registerDbReadTools = Effect.fn(
     {
       title: "Get one synced database row by key",
       description:
-        "Read a single row by the table's schema-defined key field, such as listingKey, memberKey, officeKey, openHouseKey, or destinationId.",
+        "Read a single row by the table's schema-defined key field and return found plus row/null, such as listingKey, memberKey, officeKey, openHouseKey, or destinationId.",
       inputSchema: GetRowMcpInputSchema,
     },
     (input) => ddfDbGetRowTool(input).pipe(runDbMcpTool),

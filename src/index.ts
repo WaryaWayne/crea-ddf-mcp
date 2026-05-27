@@ -2,7 +2,6 @@
 
 import { StdioServerTransport } from "@modelcontextprotocol/server";
 import { Effect } from "effect";
-import { pathToFileURL } from "node:url";
 import { createServer } from "./server.js";
 import { errorMessage } from "./mcp/results.js";
 import { disposeMcpRuntime } from "./mcp/runtime.js";
@@ -54,10 +53,7 @@ export const main = () => {
   return server.connect(transport);
 };
 
-if (
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (import.meta.main) {
   main()
     .catch((error: unknown) => {
       Effect.runSync(logStartupError(error));
