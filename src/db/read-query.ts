@@ -16,18 +16,21 @@ import {
   sql,
 } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
-import type { SelectedFields } from "drizzle-orm/pg-core";
+import type { PgColumn, SelectedFields } from "drizzle-orm/pg-core";
 import { DdfDatabase } from "crea-ddf/db";
 import { Effect, Formatter, Result, Schema } from "effect";
 import {
   DbJsonObjectSchema,
+  GetRowResultSchema,
   JsonObjectSchema,
   TableQueryResultSchema,
   type FilterInput,
   type GetRowInput,
+  type GetRowResult,
   type JsonObject,
   type OrderByInput,
   type TableQueryInput,
+  type TableQueryResult,
 } from "./read-schemas.js";
 import {
   columnsForTable,
@@ -78,6 +81,44 @@ const columnForField = Effect.fnUntraced(function* (
   }
 
   return { field: normalized, column };
+});
+
+const sqlTypeForColumn = Effect.fnUntraced(function* (column: PgColumn) {
+  return column.getSQLType().trim().toLowerCase();
+});
+
+const requireTextColumnForFilter = Effect.fnUntraced(function* (
+  filter: FilterInput,
+  column: PgColumn,
+) {
+  const sqlType = yield* sqlTypeForColumn(column);
+  const isText =
+    sqlType === "text" ||
+    sqlType === "citext" ||
+    sqlType === "char" ||
+    sqlType === "character" ||
+    sqlType.startsWith("char(") ||
+    sqlType.startsWith("varchar") ||
+    sqlType.startsWith("character varying");
+
+  if (!isText) {
+    return yield* fail(
+      `Filter "${filter.field}" with op "${filter.op}" only supports text columns; field "${filter.field}" has SQL type "${sqlType}".`,
+    );
+  }
+});
+
+const requireJsonColumnForFilter = Effect.fnUntraced(function* (
+  filter: FilterInput,
+  column: PgColumn,
+) {
+  const sqlType = yield* sqlTypeForColumn(column);
+
+  if (sqlType !== "json" && sqlType !== "jsonb") {
+    return yield* fail(
+      `Filter "${filter.field}" with op "${filter.op}" only supports json/jsonb columns; field "${filter.field}" has SQL type "${sqlType}".`,
+    );
+  }
 });
 
 const defaultFieldsForTable = Effect.fnUntraced(function* (
@@ -204,10 +245,20 @@ const conditionForFilter = Effect.fnUntraced(function* (
       return lt(column, yield* scalarForFilter(filter));
     case "lte":
       return lte(column, yield* scalarForFilter(filter));
-    case "like":
-      return like(column, yield* stringForFilter(filter));
-    case "ilike":
-      return ilike(column, yield* stringForFilter(filter));
+    case "like": {
+      const value = yield* stringForFilter(filter);
+
+      yield* requireTextColumnForFilter(filter, column);
+
+      return like(column, value);
+    }
+    case "ilike": {
+      const value = yield* stringForFilter(filter);
+
+      yield* requireTextColumnForFilter(filter, column);
+
+      return ilike(column, value);
+    }
     case "in":
       return inArray(column, yield* valuesForInFilter(filter));
     case "isNull":
@@ -220,6 +271,8 @@ const conditionForFilter = Effect.fnUntraced(function* (
           `Filter "${filter.field}" with op "jsonContains" needs value.`,
         );
       }
+
+      yield* requireJsonColumnForFilter(filter, column);
 
       const jsonString = yield* Schema.encodeUnknownEffect(
         Schema.fromJsonString(Schema.Json),
@@ -291,6 +344,73 @@ const orderByExpressions = Effect.fnUntraced(function* (
   }
 
   return expressions;
+});
+
+export const validateTableQueryInput = Effect.fn(
+  "DdfDb.validateTableQueryInput",
+)(function* (
+  input: TableQueryInput,
+) {
+  const columns = yield* columnsForTable(input.table);
+
+  yield* whereExpression(input, columns);
+  yield* orderByExpressions(input.table, columns, input.orderBy);
+  yield* selectFieldsForQuery(input.table, columns, input.select);
+});
+
+const keyValueForMessage = Effect.fnUntraced(function* (
+  key: GetRowInput["key"],
+) {
+  if (typeof key === "number") return String(key);
+
+  return `"${key.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+});
+
+const missingRowMessage = Effect.fnUntraced(function* (
+  input: GetRowInput,
+  keyField: string,
+) {
+  return `No row found in ${input.table} where ${keyField} = ${
+    yield* keyValueForMessage(input.key)
+  }.`;
+});
+
+export const getRowResultFromQueryResult = Effect.fn(
+  "DdfDb.getRowResultFromQueryResult",
+)(function* (
+  input: GetRowInput,
+  keyField: string,
+  queryResult: TableQueryResult,
+) {
+  const row = queryResult.rows[0] ?? null;
+  const result: GetRowResult = row === null
+    ? {
+      table: input.table,
+      keyField,
+      key: input.key,
+      found: false,
+      row,
+      message: yield* missingRowMessage(input, keyField),
+    }
+    : {
+      table: input.table,
+      keyField,
+      key: input.key,
+      found: true,
+      row,
+    };
+  const getRowResult = Schema.decodeUnknownResult(GetRowResultSchema)(result);
+
+  if (Result.isFailure(getRowResult)) {
+    return yield* new DdfMcpDecodeError({
+      message: `Get row result failed Effect Schema validation:\n${
+        Formatter.format(getRowResult.failure, { space: 2 })
+      }`,
+      subject: "Get row result",
+    });
+  }
+
+  return getRowResult.success;
 });
 
 export const queryTable = Effect.fn("DdfDb.queryTable")(function* (
@@ -382,11 +502,13 @@ export const getRow = Effect.fn("DdfDb.getRow")(function* (
     return yield* fail(`Table "${input.table}" does not define a key field.`);
   }
 
-  return yield* queryTable({
+  const result = yield* queryTable({
     table: input.table,
     where: { [info.keyField]: input.key },
     limit: 1,
     offset: 0,
     includeCount: false,
   });
+
+  return yield* getRowResultFromQueryResult(input, info.keyField, result);
 });
