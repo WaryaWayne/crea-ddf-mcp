@@ -1,6 +1,6 @@
 {
   "name": "crea-ddf-mcp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Read-only MCP server for querying synced CREA DDF Postgres data through the crea-ddf package.",
   "type": "module",
   "publishConfig": {
