@@ -78,6 +78,18 @@ If your MCP client runs on a different machine or inside a container, `localhost
 }
 ```
 
+`ddf_db_get_row` accepts a table and key:
+
+```json
+{
+  "table": "properties",
+  "key": "listing-key"
+}
+```
+
+It returns a single-row lookup shape. Missing keys are successful lookups with
+`found: false` and `row: null`, not tool errors.
+
 The model can call `ddf_db_list_tables` or `ddf_db_table_fields` first to discover valid table and field names. Inputs and returned JSON are decoded with Effect Schema so validation failures point at the missing or invalid field path.
 
 ## Tables
