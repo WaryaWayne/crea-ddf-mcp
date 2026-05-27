@@ -27,7 +27,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "bun run typecheck && rm -rf dist && tsc -p tsconfig.json",
+    "build": "bun run typecheck && rm -rf dist && tsc -p tsconfig.build.json",
     "start": "node ./dist/index.js",
     "dev": "bun run src/index.ts",
     "test": "bun run typecheck && vitest run",
