@@ -17,7 +17,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "crea-ddf-mcp": "./dist/index.js"
+    "crea-ddf-mcp": "dist/index.js"
   },
   "exports": {
     ".": {
