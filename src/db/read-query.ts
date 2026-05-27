@@ -320,9 +320,12 @@ export const queryTable = Effect.fn("DdfDb.queryTable")(function* (
   if (where !== undefined) query = query.where(where);
   if (orders.length > 0) query = query.orderBy(...orders);
 
-  query = query.limit(limit).offset(offset);
+  const queryLimit = includeCount ? limit : limit + 1;
+  query = query.limit(queryLimit).offset(offset);
 
-  const rows = yield* query;
+  const fetchedRows = yield* query;
+  const hasMoreWithoutCount = !includeCount && fetchedRows.length > limit;
+  const rows = includeCount ? fetchedRows : fetchedRows.slice(0, limit);
   const total = includeCount ? yield* db.$count(definition.table, where) : null;
   const jsonRows: Array<JsonObject> = [];
 
@@ -351,7 +354,9 @@ export const queryTable = Effect.fn("DdfDb.queryTable")(function* (
       offset,
       returned: jsonRows.length,
       total,
-      hasMore: total === null ? false : offset + jsonRows.length < total,
+      hasMore: total === null
+        ? hasMoreWithoutCount
+        : offset + jsonRows.length < total,
     },
     rows: jsonRows,
   });
