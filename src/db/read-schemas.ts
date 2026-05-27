@@ -140,3 +140,14 @@ export const TableQueryResultSchema = Schema.Struct({
 export type TableQueryResult = Schema.Schema.Type<
   typeof TableQueryResultSchema
 >;
+
+export const GetRowResultSchema = Schema.Struct({
+  table: DbTableNameSchema,
+  keyField: Schema.String,
+  key: Schema.Union([Schema.String, Schema.Number]),
+  found: Schema.Boolean,
+  row: Schema.NullOr(JsonObjectSchema),
+  message: Schema.optional(Schema.String),
+});
+
+export type GetRowResult = Schema.Schema.Type<typeof GetRowResultSchema>;
